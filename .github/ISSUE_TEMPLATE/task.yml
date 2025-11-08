@@ -15,7 +15,7 @@ body:
     id: descricao
     attributes:
       label: Descrição da tarefa
-      placeholder: Ex: Criar componente de input para e-mail
+      placeholder: 'Ex: Criar componente de input para e-mail'
     validations:
       required: true
 
@@ -34,7 +34,7 @@ body:
     id: milestone
     attributes:
       label: Sprint ou período de execução
-      description: Nome exato da milestone (ex: Sprint 1, Sprint 2)
+      description: 'Nome exato da milestone (ex: Sprint 1, Sprint 2)'
       placeholder: Sprint 1
     validations:
       required: false
@@ -43,6 +43,6 @@ body:
     id: estimativa
     attributes:
       label: Estimativa (Story Points ou horas)
-      placeholder: Ex: 3 SP ou 5h
+      placeholder: 'Ex: 3 SP ou 5h'
     validations:
       required: false
