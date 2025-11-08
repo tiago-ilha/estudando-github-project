@@ -31,6 +31,15 @@ body:
       required: false
 
   - type: input
+    id: milestone
+    attributes:
+      label: Sprint ou período de execução
+      description: Nome exato da milestone (ex: Sprint 1, Sprint 2)
+      placeholder: Sprint 1
+    validations:
+      required: false
+
+  - type: input
     id: estimativa
     attributes:
       label: Estimativa (Story Points ou horas)
