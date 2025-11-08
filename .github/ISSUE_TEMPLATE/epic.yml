@@ -7,7 +7,7 @@ body:
     id: objetivo
     attributes:
       label: Objetivo da Epic
-      placeholder: Ex: Criar sistema de autenticação
+      placeholder: 'Ex: Criar sistema de autenticação'
     validations:
       required: true
 
@@ -15,7 +15,7 @@ body:
     id: escopo
     attributes:
       label: Escopo e contexto
-      description: Descreva o que está incluído e o que está fora do escopo
+      description: 'Descreva o que está incluído e o que está fora do escopo'
     validations:
       required: false
 
@@ -23,6 +23,6 @@ body:
     id: features
     attributes:
       label: Features relacionadas
-      description: Liste as features que fazem parte desta Epic (use `- [ ] #issue` para vincular)
+      description: 'Liste as features que fazem parte desta Epic (use ``- [ ] #issue`` para vincular)'
     validations:
       required: false
