@@ -1,0 +1,42 @@
+name: Criar Sub-Issues a partir de Epic
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  create-subissues:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.body, 'Sub-issues a serem criadas')
+    steps:
+      - name: Extrair sub-issues e criar
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueBody = context.payload.issue.body;
+            const subissueSection = issueBody.split('### Sub-issues a serem criadas')[1];
+            if (!subissueSection) return;
+
+            const lines = subissueSection.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            const parentIssueNumber = context.payload.issue.number;
+            const createdIssues = [];
+
+            for (const line of lines) {
+              const newIssue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[Task] ${line}`,
+                body: `Sub-issue de #${parentIssueNumber}`,
+                labels: ['task']
+              });
+              createdIssues.push(`- [ ] #${newIssue.data.number} ${line}`);
+            }
+
+            // Atualiza a issue original com checklist
+            const checklist = `### Sub-issues criadas automaticamente\n${createdIssues.join('\n')}`;
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parentIssueNumber,
+              body: issueBody + '\n\n' + checklist
+            });
