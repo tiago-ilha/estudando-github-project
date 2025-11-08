@@ -1,0 +1,39 @@
+name: Task
+description: Tarefa técnica ou de entrega vinculada a uma Feature.
+title: "[Task] "
+labels: [task]
+body:
+  - type: input
+    id: feature
+    attributes:
+      label: Feature relacionada
+      placeholder: Ex: #34
+    validations:
+      required: false
+
+  - type: input
+    id: descricao
+    attributes:
+      label: Descrição da tarefa
+      placeholder: Ex: Criar componente de input para e-mail
+    validations:
+      required: true
+
+  - type: dropdown
+    id: prioridade
+    attributes:
+      label: Prioridade
+      options:
+        - Alta
+        - Média
+        - Baixa
+    validations:
+      required: false
+
+  - type: input
+    id: estimativa
+    attributes:
+      label: Estimativa (Story Points ou horas)
+      placeholder: Ex: 3 SP ou 5h
+    validations:
+      required: false
