@@ -72,6 +72,16 @@ jobs:
               }
 
               const newIssue = await github.rest.issues.create(issuePayload);
+
+              // Criar relacionamento como sub-issue (child)
+              await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/relationships', {
+                owner,
+                repo,
+                issue_number: parentNumber,
+                target_issue_number: newIssue.data.number,
+                relationship_type: 'child'
+              });
+
               createdIssues.push(`- [ ] #${newIssue.data.number} ${line}`);
             }
 
