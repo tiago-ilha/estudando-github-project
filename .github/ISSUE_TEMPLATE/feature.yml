@@ -1,13 +1,12 @@
 name: Feature
 description: Funcionalidade específica que faz parte de uma Epic.
 title: "[Feature]"
-labels: [enhancement]
 body:
   - type: input
     id: epic
     attributes:
       label: Epic relacionada
-      placeholder: Ex: #12
+      placeholder: 'Ex: #12'
     validations:
       required: false
 
@@ -15,7 +14,7 @@ body:
     id: objetivo
     attributes:
       label: Objetivo da Feature
-      placeholder: Ex: Permitir login com e-mail e senha
+      placeholder: 'Ex: Permitir login com e-mail e senha'
     validations:
       required: true
 
@@ -23,7 +22,7 @@ body:
     id: requisitos
     attributes:
       label: Requisitos funcionais
-      description: Liste os requisitos ou critérios de aceite
+      description: 'Liste os requisitos ou critérios de aceite'
     validations:
       required: false
 
@@ -31,6 +30,6 @@ body:
     id: tasks
     attributes:
       label: Tasks relacionadas
-      description: Liste as tasks que compõem esta feature (use `- [ ] #issue`)
+      description: 'Liste as tasks que compõem esta feature (use ``- [ ] #issue``)'
     validations:
       required: false
