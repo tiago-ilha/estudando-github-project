@@ -7,36 +7,71 @@ on:
 jobs:
   create-subissues:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.body, 'Sub-issues a serem criadas')
     steps:
-      - name: Extrair sub-issues e criar
+      - name: Criar sub-issues com base no tipo
         uses: actions/github-script@v7
         with:
           script: |
-            const issueBody = context.payload.issue.body;
-            const subissueSection = issueBody.split('### Sub-issues a serem criadas')[1];
-            if (!subissueSection) return;
+            const issue = context.payload.issue;
+            const body = issue.body;
+            const parentNumber = issue.number;
 
-            const lines = subissueSection.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            const parentIssueNumber = context.payload.issue.number;
+            // Função auxiliar para extrair seções
+            const extract = (label) => {
+              const match = body.match(new RegExp(`### ${label}[\\s\\S]*?\\n(.*?)\\n`, 'i'));
+              return match ? match[1].trim() : null;
+            };
+
+            // Determinar tipo da issue
+            let tipo = 'Task';
+            if (issue.title.includes('[Epic]')) tipo = 'Feature';
+            else if (issue.title.includes('[Feature]')) tipo = 'Task';
+
+            // Extrair subissues
+            const subissuesRaw = body.split('### Sub-issues a serem criadas')[1];
+            const subissues = subissuesRaw ? subissuesRaw.split('\n').map(l => l.trim()).filter(l => l.length > 0) : [];
+
+            // Extrair labels adicionais
+            const labels = [tipo.toLowerCase(), ...extract('Labels adicionais')?.split(',').map(l => l.trim()).filter(Boolean) || []];
+
+            // Buscar milestone apenas se for Task
+            let milestoneId = null;
+            if (tipo === 'Task') {
+              const sprintName = extract('Sprint ou período de execução');
+              if (sprintName) {
+                const milestones = await github.rest.issues.listMilestones({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo
+                });
+                const found = milestones.data.find(m => m.title === sprintName);
+                if (found) milestoneId = found.number;
+              }
+            }
+
             const createdIssues = [];
 
-            for (const line of lines) {
-              const newIssue = await github.rest.issues.create({
+            for (const line of subissues) {
+              const issuePayload = {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `[Task] ${line}`,
-                body: `Sub-issue de #${parentIssueNumber}`,
-                labels: ['task']
-              });
+                title: `[${tipo}] ${line}`,
+                body: `Sub-issue de #${parentNumber}`,
+                labels
+              };
+
+              if (tipo === 'Task' && milestoneId) {
+                issuePayload.milestone = milestoneId;
+              }
+
+              const newIssue = await github.rest.issues.create(issuePayload);
               createdIssues.push(`- [ ] #${newIssue.data.number} ${line}`);
             }
 
-            // Atualiza a issue original com checklist
+            // Atualizar issue original com checklist
             const checklist = `### Sub-issues criadas automaticamente\n${createdIssues.join('\n')}`;
             await github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: parentIssueNumber,
-              body: issueBody + '\n\n' + checklist
+              issue_number: parentNumber,
+              body: body + '\n\n' + checklist
             });
