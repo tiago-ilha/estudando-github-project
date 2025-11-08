@@ -3,6 +3,15 @@ description: Planejamento de uma iniciativa ampla que agrupa várias features.
 title: "[Epic]"
 body:
   - type: input
+    id: nome_repositorio
+    attributes:
+      label: Nome do repositório
+      description: Nome base para criar o repositório e o Project
+      placeholder: autenticacao-usuarios
+    validations:
+      required: true
+
+  - type: input
     id: objetivo
     attributes:
       label: Objetivo
