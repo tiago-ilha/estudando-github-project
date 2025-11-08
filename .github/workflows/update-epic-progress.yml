@@ -1,0 +1,215 @@
+name: Atualizar Progresso do Epic
+
+on:
+  issues:
+    types: [closed, reopened]
+
+jobs:
+  update-epic-progress:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'sub-issue') || contains(github.event.issue.body, 'Epic Pai:')
+    steps:
+      - name: Atualizar checklist do Epic
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            const action = context.payload.action; // 'closed' ou 'reopened'
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            console.log(`🔄 Sub-issue #${issue.number} foi ${action === 'closed' ? 'fechada' : 'reaberta'}: ${issue.title}`);
+
+            // Extrair o número do Epic pai do corpo da issue
+            const epicMatch = issue.body.match(/#(\d+)/);
+            if (!epicMatch) {
+              console.log('❌ Não foi possível encontrar o Epic pai na descrição da sub-issue');
+              return;
+            }
+
+            const epicNumber = parseInt(epicMatch[1]);
+            console.log(`🎯 Epic pai identificado: #${epicNumber}`);
+
+            try {
+              // Buscar o Epic pai
+              const epicResponse = await github.rest.issues.get({
+                owner,
+                repo,
+                issue_number: epicNumber
+              });
+
+              const epic = epicResponse.data;
+              let epicBody = epic.body;
+
+              console.log(`📄 Epic encontrado: ${epic.title}`);
+
+              // Verificar se existe seção de sub-issues
+              const progressSectionMatch = epicBody.match(/(## 🎯 Sub-Issues Criadas Automaticamente[\s\S]*?)(?=\n---|\n##|$)/);
+              
+              if (!progressSectionMatch) {
+                console.log('❌ Seção de progresso não encontrada no Epic');
+                return;
+              }
+
+              const progressSection = progressSectionMatch[1];
+              const checkboxPattern = /- \[([ x])\] #(\d+) (.+)/g;
+              let matches = [];
+              let match;
+
+              // Encontrar todos os checkboxes
+              while ((match = checkboxPattern.exec(progressSection)) !== null) {
+                matches.push({
+                  checked: match[1] === 'x',
+                  issueNumber: parseInt(match[2]),
+                  title: match[3],
+                  fullMatch: match[0]
+                });
+              }
+
+              if (matches.length === 0) {
+                console.log('❌ Nenhum checkbox encontrado na seção de progresso');
+                return;
+              }
+
+              console.log(`📋 Encontrados ${matches.length} checkboxes no Epic`);
+
+              // Atualizar o estado do checkbox da sub-issue atual
+              let subIssueFound = false;
+              let totalCompleted = 0;
+
+              for (let i = 0; i < matches.length; i++) {
+                if (matches[i].issueNumber === issue.number) {
+                  matches[i].checked = (action === 'closed');
+                  subIssueFound = true;
+                  console.log(`✅ Checkbox da sub-issue #${issue.number} ${action === 'closed' ? 'marcado' : 'desmarcado'}`);
+                }
+                
+                if (matches[i].checked) {
+                  totalCompleted++;
+                }
+              }
+
+              if (!subIssueFound) {
+                console.log('❌ Sub-issue não encontrada na lista de checkboxes do Epic');
+                return;
+              }
+
+              const totalSubIssues = matches.length;
+              const progressPercentage = Math.round((totalCompleted / totalSubIssues) * 100);
+
+              console.log(`📊 Progresso: ${totalCompleted} de ${totalSubIssues} (${progressPercentage}%)`);
+
+              // Reconstruir a seção de progresso
+              let newCheckboxes = matches.map(item => 
+                `- [${item.checked ? 'x' : ' '}] #${item.issueNumber} ${item.title}`
+              ).join('\n');
+
+              let statusIcon = '⏳';
+              if (progressPercentage === 100) {
+                statusIcon = '🎉';
+              } else if (progressPercentage >= 75) {
+                statusIcon = '🚀';
+              } else if (progressPercentage >= 50) {
+                statusIcon = '📈';
+              } else if (progressPercentage >= 25) {
+                statusIcon = '📊';
+              }
+
+              const newProgressHeader = `## 🎯 Sub-Issues Criadas Automaticamente
+**Progresso:** ${totalCompleted} de ${totalSubIssues} concluídas ${statusIcon} (${progressPercentage}%)`;
+
+              const newProgressSection = progressSection.replace(
+                /## 🎯 Sub-Issues Criadas Automaticamente[\s\S]*?(?=\n- \[)/,
+                newProgressHeader + '\n\n'
+              ).replace(
+                /- \[([ x])\] #(\d+) .+/g,
+                function(match, checked, issueNum, ...args) {
+                  const foundMatch = matches.find(m => m.issueNumber === parseInt(issueNum));
+                  return foundMatch ? `- [${foundMatch.checked ? 'x' : ' '}] #${foundMatch.issueNumber} ${foundMatch.title}` : match;
+                }
+              );
+
+              // Atualizar o Epic
+              const updatedBody = epicBody.replace(progressSectionMatch[1], newProgressSection);
+
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: epicNumber,
+                body: updatedBody
+              });
+
+              // Adicionar comentário no Epic sobre a mudança
+              let actionEmoji = action === 'closed' ? '✅' : '🔄';
+              let actionText = action === 'closed' ? 'concluída' : 'reaberta';
+              
+              const updateComment = `${actionEmoji} **Sub-issue ${actionText}**
+
+**Issue:** #${issue.number} - ${issue.title}  
+**Novo progresso:** ${totalCompleted}/${totalSubIssues} (${progressPercentage}%) ${statusIcon}
+
+${progressPercentage === 100 ? '🎊 **Parabéns! Todas as sub-issues foram concluídas!** 🎊' : ''}`;
+
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: epicNumber,
+                body: updateComment
+              });
+
+              // Se o Epic foi completado, fechar automaticamente
+              if (progressPercentage === 100 && epic.state === 'open') {
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number: epicNumber,
+                  state: 'closed'
+                });
+
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: epicNumber,
+                  body: `🎉 **Epic automaticamente concluído!**\n\nTodas as sub-issues foram finalizadas com sucesso. Este Epic foi fechado automaticamente.\n\n🏆 **Trabalho concluído:** ${totalSubIssues} Features entregues!`
+                });
+
+                console.log(`🎊 Epic #${epicNumber} fechado automaticamente - 100% completo!`);
+              }
+
+              // Se o Epic foi reaberto devido a uma sub-issue sendo reaberta
+              if (progressPercentage < 100 && epic.state === 'closed') {
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number: epicNumber,
+                  state: 'open'
+                });
+
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: epicNumber,
+                  body: `🔄 **Epic reaberto automaticamente**\n\nUma sub-issue foi reaberta, então este Epic foi automaticamente reaberto também.\n\n📊 **Progresso atual:** ${totalCompleted}/${totalSubIssues} (${progressPercentage}%)`
+                });
+
+                console.log(`🔄 Epic #${epicNumber} reaberto automaticamente`);
+              }
+
+              console.log(`✅ Epic #${epicNumber} atualizado com sucesso!`);
+
+            } catch (error) {
+              console.log(`❌ Erro ao atualizar Epic: ${error}`);
+              
+              // Tentar comentar no Epic sobre o erro
+              try {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: epicNumber,
+                  body: `⚠️ **Erro na automação**\n\nHouve um erro ao atualizar automaticamente o progresso deste Epic quando a sub-issue #${issue.number} foi ${action === 'closed' ? 'fechada' : 'reaberta'}.\n\nPor favor, atualize manualmente o checklist se necessário.`
+                });
+              } catch (commentError) {
+                console.log(`❌ Erro ao comentar sobre o erro: ${commentError}`);
+              }
+            }

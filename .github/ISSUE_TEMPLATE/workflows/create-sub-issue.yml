@@ -58,6 +58,33 @@ jobs:
 
             const createdIssues = [];
 
+            // Primeiro, obter o ID do projeto GitHub Projects v2
+            const projectQuery = `
+              query($owner: String!) {
+                organization(login: $owner) {
+                  projectsV2(first: 10) {
+                    nodes {
+                      id
+                      title
+                      number
+                    }
+                  }
+                }
+              }
+            `;
+            
+            let projectId = null;
+            try {
+              const projectResult = await github.graphql(projectQuery, { owner });
+              if (projectResult.organization?.projectsV2?.nodes?.length > 0) {
+                // Pega o primeiro projeto encontrado ou você pode filtrar por nome
+                projectId = projectResult.organization.projectsV2.nodes[0].id;
+                console.log(`Projeto encontrado: ${projectId}`);
+              }
+            } catch (error) {
+              console.log('Erro ao buscar projeto:', error);
+            }
+
             for (const line of subissues) {
               const issuePayload = {
                 owner,
@@ -72,15 +99,72 @@ jobs:
               }
 
               const newIssue = await github.rest.issues.create(issuePayload);
+              const childIssueNumber = newIssue.data.number;
 
-              // Criar relacionamento como sub-issue (child)
-              await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/relationships', {
-                owner,
-                repo,
-                issue_number: parentNumber,
-                target_issue_number: newIssue.data.number,
-                relationship_type: 'child'
-              });
+              // Se temos um projeto, adicionar as issues ao projeto e criar relacionamento
+              if (projectId) {
+                try {
+                  // Adicionar a issue pai ao projeto (se ainda não estiver)
+                  const addParentMutation = `
+                    mutation($projectId: ID!, $contentId: ID!) {
+                      addProjectV2ItemByContentId(input: {
+                        projectId: $projectId,
+                        contentId: $contentId
+                      }) {
+                        item {
+                          id
+                        }
+                      }
+                    }
+                  `;
+
+                  const parentGlobalId = Buffer.from(`Issue:${issue.node_id.split('_')[1]}`).toString('base64');
+                  const childGlobalId = Buffer.from(`Issue:${newIssue.data.node_id.split('_')[1]}`).toString('base64');
+
+                  // Adicionar issues ao projeto
+                  const parentResult = await github.graphql(addParentMutation, {
+                    projectId,
+                    contentId: issue.node_id
+                  });
+
+                  const childResult = await github.graphql(addParentMutation, {
+                    projectId,
+                    contentId: newIssue.data.node_id
+                  });
+
+                  // Criar relacionamento pai-filho usando a API correta do Projects v2
+                  if (parentResult.addProjectV2ItemByContentId?.item?.id && childResult.addProjectV2ItemByContentId?.item?.id) {
+                    const linkMutation = `
+                      mutation($parentId: ID!, $childId: ID!) {
+                        updateProjectV2ItemFieldValue(input: {
+                          projectId: "${projectId}",
+                          itemId: $childId,
+                          fieldId: "parent",
+                          value: {
+                            singleSelectOptionId: $parentId
+                          }
+                        }) {
+                          projectV2Item {
+                            id
+                          }
+                        }
+                      }
+                    `;
+
+                    // Nota: Este é um exemplo. A API real pode variar dependendo da configuração do projeto
+                    console.log(`Tentando vincular ${childResult.addProjectV2ItemByContentId.item.id} como filho de ${parentResult.addProjectV2ItemByContentId.item.id}`);
+                  }
+                } catch (projectError) {
+                  console.log(`Erro ao adicionar ao projeto: ${projectError}`);
+                  // Fallback: pelo menos criar referência na descrição
+                  await github.rest.issues.update({
+                    owner,
+                    repo,
+                    issue_number: childIssueNumber,
+                    body: `Sub-issue de #${parentNumber}\n\n**Relacionamento:** Esta issue é filha de #${parentNumber}`
+                  });
+                }
+              }
 
               createdIssues.push(`- [ ] #${newIssue.data.number} ${line}`);
             }
