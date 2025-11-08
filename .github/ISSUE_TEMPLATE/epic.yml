@@ -1,0 +1,28 @@
+name: Epic
+description: Planejamento de uma iniciativa ampla que agrupa várias features.
+title: "[Epic] Nome da Epic"
+labels: [epic]
+body:
+  - type: input
+    id: objetivo
+    attributes:
+      label: Objetivo da Epic
+      placeholder: Ex: Criar sistema de autenticação
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo e contexto
+      description: Descreva o que está incluído e o que está fora do escopo
+    validations:
+      required: false
+
+  - type: textarea
+    id: features
+    attributes:
+      label: Features relacionadas
+      description: Liste as features que fazem parte desta Epic (use `- [ ] #issue` para vincular)
+    validations:
+      required: false
