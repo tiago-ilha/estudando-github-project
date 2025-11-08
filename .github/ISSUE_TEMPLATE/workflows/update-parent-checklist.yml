@@ -1,0 +1,47 @@
+on:
+  issues:
+    types: [closed, reopened]
+
+jobs:
+  update-checklist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Atualizar checklist da issue pai
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const parentMatch = issue.body.match(/Sub-issue de #(\d+)/);
+            if (!parentMatch) return;
+
+            const parentNumber = parseInt(parentMatch[1]);
+            const parent = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parentNumber
+            });
+
+            const checklistLines = parent.data.body.split('\n').filter(l => l.includes('#') && l.includes('[ ]'));
+            let closedCount = 0;
+
+            for (const line of checklistLines) {
+              const num = line.match(/#(\d+)/)[1];
+              const sub = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt(num)
+              });
+              if (sub.data.state === 'closed') closedCount++;
+            }
+
+            const total = checklistLines.length;
+            const tipo = issue.title.includes('[Task]') ? 'Tasks' : 'Features';
+            const header = `### Sub-issues criadas automaticamente\n${closedCount} de ${total} ${tipo} concluídas`;
+
+            const newBody = parent.data.body.replace(/### Sub-issues criadas automaticamente[\s\S]*?\n\n/, header + '\n\n');
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parentNumber,
+              body: newBody
+            });
