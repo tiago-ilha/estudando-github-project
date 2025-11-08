@@ -119,12 +119,27 @@ jobs:
               createdIssues.push(`- [ ] #${newIssue.data.number} ${line}`);
             }
 
-            // Atualizar issue original com checklist e link do projeto
-            const checklist = `### Sub-issues criadas automaticamente\n${createdIssues.join('\n')}\n\n🔗 Projeto vinculado: [${projectTitle}](${projectUrl})`;
+            // Verifica status das sub-issues criadas
+            let closedCount = 0;
+            for (const line of createdIssues) {
+              const issueNumber = line.match(/#(\d+)/)[1];
+              const sub = await github.rest.issues.get({
+                owner,
+                repo: context.repo.repo,
+                issue_number: parseInt(issueNumber)
+              });
+              if (sub.data.state === 'closed') closedCount++;
+            }
+
+            const total = createdIssues.length;
+            const tipoPlural = tipo === 'Feature' ? 'Features' : 'Tasks';
+            const checklistHeader = `### Sub-issues criadas automaticamente\n${closedCount} de ${total} ${tipoPlural} concluídas\n\n${createdIssues.join('\n')}\n\n🔗 Projeto vinculado: [${projectTitle}](${projectUrl})`;
+
             await github.rest.issues.update({
               owner,
               repo: context.repo.repo,
               issue_number: parentNumber,
-              body: body + '\n\n' + checklist
+              body: body + '\n\n' + checklistHeader
             });
+
 
