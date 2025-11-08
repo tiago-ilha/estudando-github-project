@@ -70,8 +70,6 @@ body:
         - [ ] Implementar recuperação de senha
         - [ ] Configurar middleware de sessão
         - [ ] Criar testes de integração
-      value: |
-        - [ ] Implementando ambiente desenvolvimento
     validations:
       required: true
 
