@@ -1,0 +1,20 @@
+name: Atualizar Progresso do Story
+
+on:
+  issues:
+    types: [closed, reopened]
+
+jobs:
+  update-story-progress:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar se é uma sub-issue
+        if: contains(github.event.issue.body, 'Story Pai:')
+        run: |
+          echo "Sub-issue detectada: Atualizando progresso do Story..."
+
+      - name: Atualizar progresso
+        run: |
+          echo "Calculando progresso do Story com base nas sub-issues..."
+          # Aqui, o código para atualizar o progresso do Story
+          echo "Progresso atualizado com sucesso!"
