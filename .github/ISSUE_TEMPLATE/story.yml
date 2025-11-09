@@ -1,0 +1,82 @@
+name: Story
+description: Planejamento de uma iniciativa ampla que agrupa várias features.
+title: "[Story] "
+labels: ['Story']
+body:
+  - type: input
+    id: objetivo
+    attributes:
+      label: Objetivo
+      placeholder: 'Ex: Criar módulo de autenticação'
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo e contexto
+      description: 'Descreva o que está incluído e o que está fora do escopo'
+    validations:
+      required: false
+
+  - type: dropdown
+    id: prioridade
+    attributes:
+      label: Prioridade
+      description: "Qual a prioridade deste Story?"
+      options:
+        - Baixa
+        - Média
+        - Alta
+        - Crítica
+      default: 0
+    validations:
+      required: true
+
+  # - type: dropdown
+  #   id: tipo-implementacao
+  #   attributes:
+  #     label: Tipo de implementação
+  #     description: Que tipo de implementação este Epic representa?
+  #     options:
+  #       - frontend
+  #       - backend
+  #       - fullstack
+  #       - infrastructure
+  #       - design
+  #       - documentation
+  #       - testing
+  #     default: 0
+  #   validations:
+  #     required: false
+
+  # - type: input
+  #   id: sprint
+  #   attributes:
+  #     label: Sprint ou período de execução
+  #     description: Nome da Sprint/Milestone onde este Epic será executado
+  #     placeholder: ex. Sprint 1, Q1 2025, Release 1.0
+  #   validations:
+  #     required: false
+
+  - type: textarea
+    id: sub-issues
+    attributes:
+      label: Sub-issues a serem criadas
+      description: 'Liste as Features que compõem este Epic. Cada linha se tornará uma issue automática.'
+      placeholder: |
+        - [ ] Implementar funcionalidade de Login
+        - [ ] Implementar funcionalidade de Recuperação de Senha
+        - [ ] Implementar funcionalidade de Logout
+    validations:
+      required: true
+
+    value: "### Critérios de Aceitação"
+  - type: textarea
+    id: criterios
+    attributes:
+      label: "Critérios de Aceitação do Story"
+      placeholder: "Liste os critérios que definem quando este Story estará completo"
+    validations:
+      required: false
+
