@@ -71,7 +71,6 @@ body:
     validations:
       required: true
 
-    value: "### Critérios de Aceitação"
   - type: textarea
     id: criterios
     attributes:
