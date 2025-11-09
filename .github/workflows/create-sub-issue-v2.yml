@@ -24,4 +24,3 @@ jobs:
             done
           else
             echo "Tipo de issue não suportado para criação automática de sub-issues."
-            
