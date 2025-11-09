@@ -1,7 +1,6 @@
 name: Task
 description: Tarefa técnica ou de entrega vinculada a uma Feature.
 title: "[Task] "
-labels: [task]
 body:
   - type: input
     id: feature

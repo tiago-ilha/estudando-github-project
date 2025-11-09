@@ -3,9 +3,9 @@ description: Funcionalidade específica que faz parte de uma Epic.
 title: "[Feature]"
 body:
   - type: input
-    id: epic
+    id: story
     attributes:
-      label: Epic relacionada
+      label: Story relacionada
       placeholder: 'Ex: #12'
     validations:
       required: false

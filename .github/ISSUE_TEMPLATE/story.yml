@@ -1,7 +1,7 @@
 name: Story
 description: Planejamento de uma iniciativa ampla que agrupa várias features.
 title: "[Story] "
-labels: ['Story']
+labels: [enhancement]
 body:
   - type: input
     id: objetivo

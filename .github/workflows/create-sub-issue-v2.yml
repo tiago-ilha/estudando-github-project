@@ -1,4 +1,4 @@
-name: Criar Sub-Issues a partir de Story
+name: Criar Sub-Issues a partir de Story ou Feature
 
 on:
   issues:
@@ -8,13 +8,20 @@ jobs:
   create-sub-issues:
     runs-on: ubuntu-latest
     steps:
-      - name: Verificar se é um Story
-        if: contains(github.event.issue.labels.*.name, 'story') || contains(github.event.issue.title, '[Story]')
+      - name: Verificar tipo de issue
         run: |
-          echo "Processando Story #${{ github.event.issue.number }}: ${{ github.event.issue.title }}"
-
-      - name: Criar sub-issues
-        run: |
-          echo "Lendo sub-issues do campo 'Sub-issues a serem criadas'..."
-          # Aqui, o código para criar sub-issues com links para o Story
-          echo "Sub-issues criadas com sucesso!"
+          if [[ "${{ github.event.issue.labels.*.name }}" == *"story"* ]]; then
+            echo "Criando sub-issues do tipo Feature para o Story..."
+            subissues=$(echo "${{ github.event.issue.body }}" | grep -oP '(?<=- \[ \] ).*')
+            for subissue in $subissues; do
+              gh issue create --title "[Feature] $subissue" --body "Esta é uma sub-issue do Story #${{ github.event.issue.number }}." --label feature
+            done
+          elif [[ "${{ github.event.issue.labels.*.name }}" == *"feature"* ]]; then
+            echo "Criando sub-issues do tipo Task para a Feature..."
+            subissues=$(echo "${{ github.event.issue.body }}" | grep -oP '(?<=- \[ \] ).*')
+            for subissue in $subissues; do
+              gh issue create --title "[Task] $subissue" --body "Esta é uma sub-issue da Feature #${{ github.event.issue.number }}." --label task
+            done
+          else
+            echo "Tipo de issue não suportado para criação automática de sub-issues."
+            
